@@ -39,8 +39,14 @@ npm run deploy && npm run deploy:dev
 npm run migrate:prod && npm run migrate:dev           # after adding a migration
 ```
 
-Then sign in → **Admin** → pick your cloned voice (listed from your ElevenLabs
-account) and a model. `eleven_multilingual_v2` is the safe default for clones.
+Then sign in. Pages:
+- **Studio** — script box, **voice dropdown** (every voice on the ElevenLabs
+  account, clones marked "yours"), generate, clip history.
+- **Settings** — your delivery sliders (stability, similarity, style, speed),
+  saved per user in D1 (`users.prefs`). Admins also get the ElevenLabs quota and
+  the engine settings (model, max characters per clip).
+  `eleven_multilingual_v2` is the safe default for clones.
+- **Account** — change password. Admins also manage users and the monthly cap.
 
 ## Local dev
 

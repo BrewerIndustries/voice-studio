@@ -3,7 +3,7 @@ import { useAuth } from './lib/auth';
 import Layout from './components/Layout';
 import Login from './pages/Login';
 import Studio from './pages/Studio';
-import Admin from './pages/Admin';
+import Settings from './pages/Settings';
 import Account from './pages/Account';
 
 export default function App() {
@@ -20,8 +20,8 @@ export default function App() {
     <Layout>
       <Routes>
         <Route path="/" element={<Studio />} />
+        <Route path="/settings" element={<Settings />} />
         <Route path="/account" element={<Account />} />
-        {user.role === 'admin' && <Route path="/admin" element={<Admin />} />}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </Layout>
