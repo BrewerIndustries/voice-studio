@@ -1,0 +1,45 @@
+# Voice Studio API — Cloudflare Worker (prod = default env, dev = [env.dev]).
+# Secrets (per env, never in this file):
+#   wrangler secret put SESSION_SECRET            [--env dev]
+#   wrangler secret put ELEVENLABS_API_KEY        [--env dev]
+
+name = "voice-studio-api"
+main = "src/index.ts"
+compatibility_date = "2024-11-06"
+
+# ---------------- PROD (default) ----------------
+# custom_domain=true makes `wrangler deploy` create the DNS record + edge cert.
+routes = [
+  { pattern = "voice-api.dabrewer.dev", custom_domain = true }
+]
+
+[vars]
+ALLOWED_ORIGIN = "https://voice.dabrewer.dev"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "voice-studio-prod"
+database_id = "4e6c1b87-45c0-4015-8348-691c7389f8f4"
+
+[[r2_buckets]]
+binding = "CLIPS"
+bucket_name = "voice-studio-clips-prod"
+
+# ---------------- DEV ----------------
+[env.dev]
+name = "voice-studio-api-dev"
+routes = [
+  { pattern = "voice-api-dev.dabrewer.dev", custom_domain = true }
+]
+
+[env.dev.vars]
+ALLOWED_ORIGIN = "https://voice.dabrewer.dev"
+
+[[env.dev.d1_databases]]
+binding = "DB"
+database_name = "voice-studio-dev"
+database_id = "5ae97359-96f4-4b2b-b488-45db1c892486"
+
+[[env.dev.r2_buckets]]
+binding = "CLIPS"
+bucket_name = "voice-studio-clips-dev"

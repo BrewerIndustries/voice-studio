@@ -1,0 +1,13 @@
+{
+  "id": "voice-studio",
+  "name": "Voice Studio",
+  "description": "Invite-only web app that turns typed text into a voice-over in Dan's own cloned voice via ElevenLabs. Clip history with replay/download, per-user monthly character caps, admin voice/model picker. React + Vite on GitHub Pages backed by a Cloudflare Worker (Hono) + D1 + R2.",
+  "category": "standalone",
+  "tech": ["React 19", "Vite", "Tailwind CSS v4", "Cloudflare Workers", "Hono", "D1 (SQLite)", "R2", "ElevenLabs API", "GitHub Pages"],
+  "status": { "prod": "live", "dev": "live" },
+  "deploy": {
+    "prod": { "url": "https://voice.dabrewer.dev/" },
+    "dev": { "url": "https://voice.dabrewer.dev/dev/" }
+  },
+  "repo": "https://github.com/BrewerIndustries/voice-studio"
+}

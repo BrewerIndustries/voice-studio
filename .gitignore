@@ -1,0 +1,9 @@
+node_modules/
+dist/
+.wrangler/
+.dev.vars
+*.local
+.DS_Store
+# macOS Finder duplicates (e.g. "foo 2.ts")
+* [0-9].*
+.claude/
