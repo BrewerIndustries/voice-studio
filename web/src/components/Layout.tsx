@@ -31,7 +31,7 @@ export function Logo() {
 }
 
 export default function Layout({ children }: { children: ReactNode }) {
-  const { user, logout } = useAuth();
+  const { logout } = useAuth();
   const [theme, nextTheme] = useTheme();
   const isDev = import.meta.env.BASE_URL !== '/';
   const link = ({ isActive }: { isActive: boolean }) =>
@@ -45,7 +45,7 @@ export default function Layout({ children }: { children: ReactNode }) {
           {isDev && <span className="rounded-full bg-amber-500 px-2 py-0.5 text-[10px] font-black uppercase tracking-widest text-black">Dev</span>}
           <nav className="flex gap-1">
             <NavLink to="/" end className={link}>Studio</NavLink>
-            {user?.role === 'admin' && <NavLink to="/admin" className={link}>Admin</NavLink>}
+            <NavLink to="/settings" className={link}>Settings</NavLink>
             <NavLink to="/account" className={link}>Account</NavLink>
           </nav>
           <div className="ml-auto flex items-center gap-2">

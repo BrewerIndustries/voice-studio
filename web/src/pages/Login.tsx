@@ -1,7 +1,7 @@
 import { useState, type FormEvent } from 'react';
 import { useAuth } from '../lib/auth';
 import { Logo } from '../components/Layout';
-import { Button, ErrorNote, Input } from '../components/ui';
+import { Button, ErrorNote, Input, PasswordInput } from '../components/ui';
 
 export default function Login() {
   const { login } = useAuth();
@@ -37,7 +37,7 @@ export default function Login() {
           </label>
           <label className="block">
             <span className="mb-1 block text-xs font-medium text-ink/60">Password</span>
-            <Input type="password" autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} required />
+            <PasswordInput autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} required />
           </label>
           <ErrorNote>{error}</ErrorNote>
           <Button type="submit" disabled={busy} className="w-full">{busy ? 'Signing in…' : 'Sign in'}</Button>

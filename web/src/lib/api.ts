@@ -4,10 +4,15 @@ export type User = { id: string; email: string; role: 'user' | 'admin'; display_
 
 export type VoiceSettings = { stability: number; similarity_boost: number; style: number; speed: number };
 
+export type Voice = { voice_id: string; name: string; category: string | null };
+
+export type Prefs = { voice_id: string; stability: number; similarity: number; style: number; speed: number };
+
 export type Clip = {
   id: string;
   text: string;
   chars: number;
+  voice_id: string;
   model_id: string;
   settings: VoiceSettings | null;
   bytes: number | null;
@@ -17,7 +22,7 @@ export type Clip = {
 export type Studio = {
   ready: boolean;
   has_api_key: boolean;
-  voice_name: string | null;
+  prefs: Prefs;
   model_id: string;
   max_chars_per_clip: number;
   usage: { used: number; cap: number | null };
@@ -71,14 +76,14 @@ export const api = {
   changePassword: (current: string, next: string) => req<{ ok: true }>('/auth/password', json('POST', { current, next })),
 
   studio: () => req<Studio>('/studio'),
-  generate: (text: string, s: { stability: number; similarity: number; style: number; speed: number }) =>
-    req<{ clip: Clip }>('/generate', json('POST', { text, ...s })).then((r) => r.clip),
+  voices: (fresh = false) => req<{ voices: Voice[] }>(`/voices${fresh ? '?fresh=1' : ''}`).then((r) => r.voices),
+  savePrefs: (p: Partial<Prefs>) => req<{ prefs: Prefs }>('/prefs', json('PUT', p)).then((r) => r.prefs),
+  generate: (text: string, p: Prefs) => req<{ clip: Clip }>('/generate', json('POST', { text, ...p })).then((r) => r.clip),
   clips: () => req<{ clips: Clip[] }>('/clips').then((r) => r.clips),
   deleteClip: (id: string) => req<{ ok: true }>(`/clips/${encodeURIComponent(id)}`, { method: 'DELETE' }),
 
   adminSettings: () => req<{ config: Config; models: string[]; has_api_key: boolean }>('/admin/settings'),
   saveSettings: (patch: Partial<Config>) => req<{ config: Config }>('/admin/settings', json('PUT', patch)).then((r) => r.config),
-  voices: () => req<{ voices: { voice_id: string; name: string; category: string | null }[] }>('/admin/voices').then((r) => r.voices),
   quota: () => req<{ tier: string | null; used: number | null; limit: number | null; resets_at: number | null }>('/admin/quota'),
   users: () => req<{ users: AdminUser[] }>('/admin/users').then((r) => r.users),
   createUser: (d: { email: string; password: string; role: string; display_name?: string }) => req<{ user: User }>('/admin/users', json('POST', d)),

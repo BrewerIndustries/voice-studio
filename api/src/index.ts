@@ -119,6 +119,47 @@ async function charsThisMonth(c: any, userId: string): Promise<number> {
   return Number(row?.n ?? 0);
 }
 
+type Voice = { voice_id: string; name: string; category: string | null };
+type Prefs = { voice_id: string; stability: number; similarity: number; style: number; speed: number };
+
+const DEFAULT_PREFS: Omit<Prefs, 'voice_id'> = { stability: 0.5, similarity: 0.75, style: 0, speed: 1 };
+
+// The account's voices, cached per isolate so /generate can validate a voice id
+// without an extra ElevenLabs round trip every time.
+let voiceCache: { at: number; voices: Voice[] } | null = null;
+const VOICE_TTL_MS = 5 * 60 * 1000;
+
+async function listVoices(c: any, fresh = false): Promise<Voice[]> {
+  if (!fresh && voiceCache && Date.now() - voiceCache.at < VOICE_TTL_MS) return voiceCache.voices;
+  const res = await eleven(c, '/voices');
+  if (!res.ok) throw new Error(await elevenError(res));
+  const j: any = await res.json();
+  const isClone = (v: Voice) => v.category === 'cloned' || v.category === 'professional';
+  const voices: Voice[] = (j.voices || []).map((v: any) => ({
+    voice_id: v.voice_id, name: v.name, category: v.category ?? null,
+  }));
+  // Cloned voices first — that's the one you want.
+  voices.sort((a, b) => Number(isClone(b)) - Number(isClone(a)));
+  voiceCache = { at: Date.now(), voices };
+  return voices;
+}
+
+async function getPrefs(c: any, userId: string, cfg: Config): Promise<Prefs> {
+  const row = await c.env.DB.prepare('SELECT prefs FROM users WHERE id = ?').bind(userId).first();
+  const saved = row?.prefs ? JSON.parse(row.prefs as string) : {};
+  return { ...DEFAULT_PREFS, voice_id: cfg.voice_id, ...saved };
+}
+
+function cleanPrefs(b: any, base: Prefs): Prefs {
+  return {
+    voice_id: typeof b.voice_id === 'string' ? b.voice_id.trim() : base.voice_id,
+    stability: clamp01(b.stability ?? base.stability, DEFAULT_PREFS.stability),
+    similarity: clamp01(b.similarity ?? base.similarity, DEFAULT_PREFS.similarity),
+    style: clamp01(b.style ?? base.style, DEFAULT_PREFS.style),
+    speed: Math.max(0.7, Math.min(1.2, Number(b.speed ?? base.speed) || 1)),
+  };
+}
+
 function clamp01(v: unknown, dflt: number): number {
   const n = Number(v);
   return isFinite(n) ? Math.max(0, Math.min(1, n)) : dflt;
@@ -129,6 +170,7 @@ function publicClip(row: any) {
     id: row.id,
     text: row.text,
     chars: row.chars,
+    voice_id: row.voice_id,
     model_id: row.model_id,
     settings: row.settings ? JSON.parse(row.settings) : null,
     bytes: row.bytes,
@@ -234,9 +276,9 @@ app.get('/studio', auth, async (c) => {
   const cfg = await getConfig(c);
   const me = c.get('user');
   return c.json({
-    ready: Boolean(cfg.voice_id && c.env.ELEVENLABS_API_KEY),
+    ready: Boolean(c.env.ELEVENLABS_API_KEY),
     has_api_key: Boolean(c.env.ELEVENLABS_API_KEY),
-    voice_name: cfg.voice_name || null,
+    prefs: await getPrefs(c, me.id, cfg),
     model_id: cfg.model_id,
     max_chars_per_clip: cfg.max_chars_per_clip,
     usage: {
@@ -246,13 +288,40 @@ app.get('/studio', auth, async (c) => {
   });
 });
 
+app.get('/voices', auth, async (c) => {
+  if (!c.env.ELEVENLABS_API_KEY) return c.json({ error: 'ElevenLabs API key is not set yet' }, 503);
+  try {
+    return c.json({ voices: await listVoices(c, c.req.query('fresh') === '1') });
+  } catch (e: any) {
+    return c.json({ error: e.message }, 502);
+  }
+});
+
+app.put('/prefs', auth, async (c) => {
+  const me = c.get('user');
+  const b = await c.req.json().catch(() => ({} as any));
+  const prefs = cleanPrefs(b, await getPrefs(c, me.id, await getConfig(c)));
+  await c.env.DB.prepare('UPDATE users SET prefs = ? WHERE id = ?').bind(JSON.stringify(prefs), me.id).run();
+  return c.json({ prefs });
+});
+
 app.post('/generate', auth, async (c) => {
   const me = c.get('user');
   const cfg = await getConfig(c);
   if (!c.env.ELEVENLABS_API_KEY) return c.json({ error: 'ElevenLabs API key is not set yet' }, 503);
-  if (!cfg.voice_id) return c.json({ error: 'No voice selected yet — an admin picks it in Admin' }, 503);
 
   const b = await c.req.json().catch(() => ({} as any));
+  const prefs = cleanPrefs(b, await getPrefs(c, me.id, cfg));
+  let voices: Voice[];
+  try {
+    voices = await listVoices(c);
+    if (prefs.voice_id && !voices.some((v) => v.voice_id === prefs.voice_id)) voices = await listVoices(c, true);
+  } catch (e: any) {
+    return c.json({ error: e.message }, 502);
+  }
+  const voice_id = voices.some((v) => v.voice_id === prefs.voice_id) ? prefs.voice_id : '';
+  if (!voice_id) return c.json({ error: 'pick a voice first' }, 400);
+
   const text = String(b.text ?? '').trim();
   if (!text) return c.json({ error: 'enter some text first' }, 400);
   if (text.length > cfg.max_chars_per_clip) {
@@ -273,14 +342,14 @@ app.post('/generate', auth, async (c) => {
   }
 
   const voice_settings = {
-    stability: clamp01(b.stability, 0.5),
-    similarity_boost: clamp01(b.similarity, 0.75),
-    style: clamp01(b.style, 0),
+    stability: prefs.stability,
+    similarity_boost: prefs.similarity,
+    style: prefs.style,
     use_speaker_boost: true,
-    speed: Math.max(0.7, Math.min(1.2, Number(b.speed) || 1)),
+    speed: prefs.speed,
   };
 
-  const res = await eleven(c, `/text-to-speech/${encodeURIComponent(cfg.voice_id)}?output_format=mp3_44100_128`, {
+  const res = await eleven(c, `/text-to-speech/${encodeURIComponent(voice_id)}?output_format=mp3_44100_128`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Accept: 'audio/mpeg' },
     body: JSON.stringify({ text, model_id: cfg.model_id, voice_settings }),
@@ -293,7 +362,7 @@ app.post('/generate', auth, async (c) => {
   await c.env.CLIPS.put(r2_key, audio, { httpMetadata: { contentType: 'audio/mpeg' } });
 
   const row = {
-    id, user_id: me.id, text, chars: text.length, voice_id: cfg.voice_id, model_id: cfg.model_id,
+    id, user_id: me.id, text, chars: text.length, voice_id, model_id: cfg.model_id,
     settings: JSON.stringify(voice_settings), r2_key, bytes: audio.byteLength, created_at: Date.now(),
   };
   await c.env.DB.prepare(
@@ -359,19 +428,14 @@ app.put('/admin/settings', auth, requireAdmin, async (c) => {
   return c.json({ config: cfg });
 });
 
-// The account's voices, so the admin can pick theirs instead of pasting an id.
+// Kept for the v1 admin page; the studio now uses /voices.
 app.get('/admin/voices', auth, requireAdmin, async (c) => {
   if (!c.env.ELEVENLABS_API_KEY) return c.json({ error: 'ElevenLabs API key is not set yet' }, 503);
-  const res = await eleven(c, '/voices');
-  if (!res.ok) return c.json({ error: await elevenError(res) }, 502);
-  const j: any = await res.json();
-  const voices = (j.voices || []).map((v: any) => ({
-    voice_id: v.voice_id, name: v.name, category: v.category ?? null,
-  }));
-  // Cloned voices first — that's the one you want.
-  voices.sort((a: any, b: any) => Number(b.category === 'cloned' || b.category === 'professional')
-    - Number(a.category === 'cloned' || a.category === 'professional'));
-  return c.json({ voices });
+  try {
+    return c.json({ voices: await listVoices(c) });
+  } catch (e: any) {
+    return c.json({ error: e.message }, 502);
+  }
 });
 
 // ElevenLabs account quota (characters used / limit this billing period).
