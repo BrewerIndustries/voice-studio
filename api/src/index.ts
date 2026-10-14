@@ -20,7 +20,7 @@ type SessionUser = {
 
 // Admin-editable config, stored as one JSON row in `settings`.
 type Config = {
-  voice_id: string;            // ElevenLabs voice used for every generation
+  voice_id: string;            // the owner's own voice: "My voice" button + default for new users
   voice_name: string;
   model_id: string;
   monthly_char_cap: number;    // per user, per calendar month (UTC); admins exempt
@@ -279,6 +279,7 @@ app.get('/studio', auth, async (c) => {
     ready: Boolean(c.env.ELEVENLABS_API_KEY),
     has_api_key: Boolean(c.env.ELEVENLABS_API_KEY),
     prefs: await getPrefs(c, me.id, cfg),
+    my_voice_id: cfg.voice_id || null,
     model_id: cfg.model_id,
     max_chars_per_clip: cfg.max_chars_per_clip,
     usage: {

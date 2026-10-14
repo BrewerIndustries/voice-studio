@@ -23,6 +23,7 @@ export type Studio = {
   ready: boolean;
   has_api_key: boolean;
   prefs: Prefs;
+  my_voice_id: string | null;
   model_id: string;
   max_chars_per_clip: number;
   usage: { used: number; cap: number | null };

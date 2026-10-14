@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
-import { api, type Config, type Prefs } from '../lib/api';
+import { api, type Config, type Prefs, type Voice } from '../lib/api';
 import { useAuth } from '../lib/auth';
 import { Button, Card, ErrorNote, fmtDate, fmtNum, Input, inputCls } from '../components/ui';
 
@@ -62,6 +62,7 @@ function EngineSettings() {
   const [models, setModels] = useState<string[]>([]);
   const [hasKey, setHasKey] = useState(false);
   const [quota, setQuota] = useState<Quota | null>(null);
+  const [voices, setVoices] = useState<Voice[]>([]);
   const [error, setError] = useState('');
   const [saved, setSaved] = useState(false);
 
@@ -70,7 +71,10 @@ function EngineSettings() {
       setCfg(r.config);
       setModels(r.models);
       setHasKey(r.has_api_key);
-      if (r.has_api_key) api.quota().then(setQuota).catch(() => {});
+      if (r.has_api_key) {
+        api.quota().then(setQuota).catch(() => {});
+        api.voices().then(setVoices).catch(() => {});
+      }
     }).catch((e) => setError(e.message));
   }, []);
 
@@ -79,7 +83,9 @@ function EngineSettings() {
     if (!cfg) return;
     setError('');
     try {
-      setCfg(await api.saveSettings({ model_id: cfg.model_id, max_chars_per_clip: cfg.max_chars_per_clip }));
+      setCfg(await api.saveSettings({
+        voice_id: cfg.voice_id, voice_name: cfg.voice_name, model_id: cfg.model_id, max_chars_per_clip: cfg.max_chars_per_clip,
+      }));
       setSaved(true);
       setTimeout(() => setSaved(false), 2000);
     } catch (err: any) {
@@ -112,6 +118,14 @@ function EngineSettings() {
       {cfg && (
         <Card title="Engine (admin)">
           <form onSubmit={save} className="grid gap-4 sm:grid-cols-2">
+            <label className="block sm:col-span-2">
+              <span className="mb-1 block text-xs font-medium text-ink/60">Your voice (the "My voice" button, and the default for new users)</span>
+              <select className={inputCls} value={cfg.voice_id}
+                onChange={(e) => setCfg({ ...cfg, voice_id: e.target.value, voice_name: voices.find((v) => v.voice_id === e.target.value)?.name || '' })}>
+                {!voices.some((v) => v.voice_id === cfg.voice_id) && <option value={cfg.voice_id}>{cfg.voice_name || '— choose —'}</option>}
+                {voices.map((v) => <option key={v.voice_id} value={v.voice_id}>{v.name}</option>)}
+              </select>
+            </label>
             <label className="block">
               <span className="mb-1 block text-xs font-medium text-ink/60">Model</span>
               <select className={inputCls} value={cfg.model_id} onChange={(e) => setCfg({ ...cfg, model_id: e.target.value })}>
