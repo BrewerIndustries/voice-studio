@@ -3,6 +3,14 @@ import { Link } from 'react-router-dom';
 import { api, audioUrl, type Clip, type Prefs, type Studio as StudioInfo, type Voice } from '../lib/api';
 import { Button, Card, ErrorNote, fmtDate, fmtNum, inputCls } from '../components/ui';
 
+// One-tap voices next to the dropdown. Library voices are matched by name, so they
+// light up once added to the ElevenLabs account (Voice Library → Add).
+const QUICK: { label: string; hint: string; match: (v: Voice, myId: string | null) => boolean }[] = [
+  { label: 'My voice', hint: 'Set "Your voice" in Settings', match: (v, myId) => v.voice_id === myId },
+  { label: 'Quentin', hint: 'Add "Quentin – Narrator and Educator" to My Voices on ElevenLabs', match: (v) => /quentin/i.test(v.name) && /narrat/i.test(v.name) },
+  { label: 'Eryn', hint: 'Add an "Eryn" voice to My Voices on ElevenLabs', match: (v) => /\beryn\b/i.test(v.name) },
+];
+
 export default function Studio() {
   const [info, setInfo] = useState<StudioInfo | null>(null);
   const [clips, setClips] = useState<Clip[]>([]);
@@ -74,12 +82,26 @@ export default function Studio() {
             {!voiceKnown && <option value="">{voices.length ? '— choose —' : 'Loading…'}</option>}
             {voices.map((v) => (
               <option key={v.voice_id} value={v.voice_id}>
-                {v.name}{v.category === 'cloned' || v.category === 'professional' ? ' (yours)' : ''}
+                {v.name}{v.voice_id === info?.my_voice_id ? ' (yours)' : ''}
               </option>
             ))}
           </select>
         </span>
       }>
+        <div className="mb-3 flex flex-wrap gap-2">
+          {QUICK.map((q) => {
+            const v = voices.find((x) => q.match(x, info?.my_voice_id ?? null));
+            const active = Boolean(v && prefs?.voice_id === v.voice_id);
+            return (
+              <button key={q.label} type="button" disabled={!v} onClick={() => v && chooseVoice(v.voice_id)}
+                title={v ? v.name : q.hint}
+                className={`rounded-full px-3 py-1 text-xs font-medium ring-1 transition disabled:cursor-not-allowed disabled:opacity-40 ${
+                  active ? 'bg-accent text-black ring-accent' : 'text-ink/80 ring-ink/20 hover:bg-ink/5'}`}>
+                {q.label}
+              </button>
+            );
+          })}
+        </div>
         <textarea value={text} onChange={(e) => setText(e.target.value)} rows={8}
           placeholder="Type or paste what you want said…"
           className={`${inputCls} resize-y text-base leading-relaxed`} />

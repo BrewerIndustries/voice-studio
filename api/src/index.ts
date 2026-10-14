@@ -20,7 +20,7 @@ type SessionUser = {
 
 // Admin-editable config, stored as one JSON row in `settings`.
 type Config = {
-  voice_id: string;            // ElevenLabs voice used for every generation
+  voice_id: string;            // the owner's own voice: "My voice" button + default for new users
   voice_name: string;
   model_id: string;
   monthly_char_cap: number;    // per user, per calendar month (UTC); admins exempt
@@ -122,7 +122,7 @@ async function charsThisMonth(c: any, userId: string): Promise<number> {
 type Voice = { voice_id: string; name: string; category: string | null };
 type Prefs = { voice_id: string; stability: number; similarity: number; style: number; speed: number };
 
-const DEFAULT_PREFS: Omit<Prefs, 'voice_id'> = { stability: 0.5, similarity: 0.75, style: 0, speed: 1 };
+const DEFAULT_PREFS: Omit<Prefs, 'voice_id'> = { stability: 0.25, similarity: 0.25, style: 0.55, speed: 1 };
 
 // The account's voices, cached per isolate so /generate can validate a voice id
 // without an extra ElevenLabs round trip every time.
@@ -279,6 +279,7 @@ app.get('/studio', auth, async (c) => {
     ready: Boolean(c.env.ELEVENLABS_API_KEY),
     has_api_key: Boolean(c.env.ELEVENLABS_API_KEY),
     prefs: await getPrefs(c, me.id, cfg),
+    my_voice_id: cfg.voice_id || null,
     model_id: cfg.model_id,
     max_chars_per_clip: cfg.max_chars_per_clip,
     usage: {
