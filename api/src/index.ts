@@ -122,7 +122,7 @@ async function charsThisMonth(c: any, userId: string): Promise<number> {
 type Voice = { voice_id: string; name: string; category: string | null };
 type Prefs = { voice_id: string; stability: number; similarity: number; style: number; speed: number };
 
-const DEFAULT_PREFS: Omit<Prefs, 'voice_id'> = { stability: 0.5, similarity: 0.75, style: 0, speed: 1 };
+const DEFAULT_PREFS: Omit<Prefs, 'voice_id'> = { stability: 0.25, similarity: 0.25, style: 0.55, speed: 1 };
 
 // The account's voices, cached per isolate so /generate can validate a voice id
 // without an extra ElevenLabs round trip every time.

@@ -3,7 +3,7 @@ import { api, type Config, type Prefs, type Voice } from '../lib/api';
 import { useAuth } from '../lib/auth';
 import { Button, Card, ErrorNote, fmtDate, fmtNum, Input, inputCls } from '../components/ui';
 
-const DEFAULTS = { stability: 0.5, similarity: 0.75, style: 0, speed: 1 };
+const DEFAULTS = { stability: 0.25, similarity: 0.25, style: 0.55, speed: 1 };
 
 type Quota = { tier: string | null; used: number | null; limit: number | null; resets_at: number | null };
 
