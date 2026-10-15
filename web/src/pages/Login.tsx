@@ -32,8 +32,8 @@ export default function Login() {
         </div>
         <form onSubmit={submit} className="space-y-3 rounded-2xl bg-ink/[0.04] p-6 ring-1 ring-ink/10">
           <label className="block">
-            <span className="mb-1 block text-xs font-medium text-ink/60">Email</span>
-            <Input type="email" autoComplete="username" value={email} onChange={(e) => setEmail(e.target.value)} required />
+            <span className="mb-1 block text-xs font-medium text-ink/60">Email or username</span>
+            <Input type="text" autoComplete="username" autoCapitalize="none" spellCheck={false} value={email} onChange={(e) => setEmail(e.target.value)} required />
           </label>
           <label className="block">
             <span className="mb-1 block text-xs font-medium text-ink/60">Password</span>

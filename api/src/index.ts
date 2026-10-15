@@ -204,7 +204,7 @@ app.post('/auth/login', async (c) => {
   const body = await c.req.json().catch(() => ({} as any));
   const email = String(body.email ?? '').trim().toLowerCase();
   const password = String(body.password ?? '');
-  if (!email || !password) return c.json({ error: 'email and password required' }, 400);
+  if (!email || !password) return c.json({ error: 'login and password required' }, 400);
 
   const ip = c.req.header('CF-Connecting-IP') || 'unknown';
   const keys = [`ip:${ip}`, `email:${email}`];
@@ -468,10 +468,14 @@ app.post('/admin/users', auth, requireAdmin, async (c) => {
   const email = String(b.email ?? '').trim().toLowerCase();
   const password = String(b.password ?? '');
   const role = b.role === 'admin' ? 'admin' : 'user';
-  if (!email.includes('@')) return c.json({ error: 'valid email required' }, 400);
+  // The login can be an email or a plain username (stored lowercased in `email`).
+  const isEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+  if (!isEmail && !/^[a-z0-9._-]{3,32}$/.test(email)) {
+    return c.json({ error: 'use an email, or a username of 3–32 letters, numbers, . _ -' }, 400);
+  }
   if (password.length < 10) return c.json({ error: 'password must be at least 10 characters' }, 400);
   const exists = await c.env.DB.prepare('SELECT 1 FROM users WHERE email = ?').bind(email).first();
-  if (exists) return c.json({ error: 'that email already has an account' }, 409);
+  if (exists) return c.json({ error: 'that login already has an account' }, 409);
   const user = {
     id: crypto.randomUUID(), email, role,
     display_name: b.display_name ? String(b.display_name).slice(0, 80) : null,

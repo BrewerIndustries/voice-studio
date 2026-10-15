@@ -106,7 +106,7 @@ function Users() {
         ))}
       </ul>
       <form onSubmit={addUser} className="grid gap-2 sm:grid-cols-[1fr_1fr_auto_auto]">
-        <Input type="email" placeholder="Email" value={nu.email} onChange={(e) => setNu({ ...nu, email: e.target.value })} required />
+        <Input type="text" placeholder="Email or username" autoCapitalize="none" spellCheck={false} value={nu.email} onChange={(e) => setNu({ ...nu, email: e.target.value })} required />
         <PasswordInput placeholder="Temporary password (10+)" autoComplete="new-password" minLength={10}
           value={nu.password} onChange={(e) => setNu({ ...nu, password: e.target.value })} required />
         <select className={inputCls} value={nu.role} onChange={(e) => setNu({ ...nu, role: e.target.value })}>
