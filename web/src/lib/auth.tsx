@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
 import { api, type User } from './api';
+import { clearDrafts } from './draft';
 
 type AuthState = {
   user: User | null;
@@ -15,11 +16,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    api.me().then(setUser).catch(() => setUser(null)).finally(() => setLoading(false));
+    // Signed out (e.g. session expired): drop any drafts left on this browser.
+    api.me().then(setUser).catch(() => { clearDrafts(); setUser(null); }).finally(() => setLoading(false));
   }, []);
 
   const login = async (email: string, password: string) => setUser(await api.login(email, password));
   const logout = async () => {
+    clearDrafts();
     await api.logout().catch(() => {});
     setUser(null);
   };

@@ -40,7 +40,7 @@ npm run migrate:prod && npm run migrate:dev           # after adding a migration
 ```
 
 Then sign in. Pages:
-- **Studio** — script box, quick buttons (**My voice**, **Quentin**, **Eryn**; library voices match by name once added to the account), **voice dropdown** (every voice on the ElevenLabs
+- **Studio** — script box, quick buttons (**Digital Dan** = the owner voice, **Quentin**, **Eryn**; library voices match by name once added to the account), **voice dropdown** (every voice on the ElevenLabs
   account, clones marked "yours"), generate, clip history.
 - **Settings** — your delivery sliders (stability, similarity, style, speed),
   saved per user in D1 (`users.prefs`). Admins also get the ElevenLabs quota and
