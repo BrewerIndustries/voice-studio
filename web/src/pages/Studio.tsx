@@ -1,12 +1,14 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { useAuth } from '../lib/auth';
+import { draftKey } from '../lib/draft';
 import { api, audioUrl, type Clip, type Prefs, type Studio as StudioInfo, type Voice } from '../lib/api';
 import { Button, Card, ErrorNote, fmtDate, fmtNum, inputCls } from '../components/ui';
 
 // One-tap voices next to the dropdown. Library voices are matched by name, so they
 // light up once added to the ElevenLabs account (Voice Library → Add).
 const QUICK: { label: string; hint: string; match: (v: Voice, myId: string | null) => boolean }[] = [
-  { label: 'My voice', hint: 'Set "Your voice" in Settings', match: (v, myId) => v.voice_id === myId },
+  { label: 'Digital Dan', hint: 'Set "Your voice" in Settings', match: (v, myId) => v.voice_id === myId },
   { label: 'Quentin', hint: 'Add "Quentin – Narrator and Educator" to My Voices on ElevenLabs', match: (v) => /quentin/i.test(v.name) && /narrat/i.test(v.name) },
   { label: 'Eryn', hint: 'Add an "Eryn" voice to My Voices on ElevenLabs', match: (v) => /\beryn\b/i.test(v.name) },
 ];
@@ -14,7 +16,9 @@ const QUICK: { label: string; hint: string; match: (v: Voice, myId: string | nul
 export default function Studio() {
   const [info, setInfo] = useState<StudioInfo | null>(null);
   const [clips, setClips] = useState<Clip[]>([]);
-  const [text, setText] = useState(() => { try { return localStorage.getItem('vs_draft') || ''; } catch { return ''; } });
+  const { user } = useAuth();
+  const key = draftKey(user!.id);
+  const [text, setText] = useState(() => { try { return localStorage.getItem(key) || ''; } catch { return ''; } });
   const [prefs, setPrefs] = useState<Prefs | null>(null);
   const [voices, setVoices] = useState<Voice[]>([]);
   const [busy, setBusy] = useState(false);
@@ -35,7 +39,7 @@ export default function Studio() {
   };
   const voiceName = (id: string) => voices.find((v) => v.voice_id === id)?.name;
   const voiceKnown = Boolean(prefs && voices.some((v) => v.voice_id === prefs.voice_id));
-  useEffect(() => { try { localStorage.setItem('vs_draft', text); } catch { /* ignore */ } }, [text]);
+  useEffect(() => { try { localStorage.setItem(key, text); } catch { /* ignore */ } }, [key, text]);
   useEffect(() => { if (latest) latestRef.current?.play().catch(() => {}); }, [latest]);
 
   const max = info?.max_chars_per_clip ?? 5000;

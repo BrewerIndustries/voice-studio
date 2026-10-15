@@ -119,7 +119,7 @@ function EngineSettings() {
         <Card title="Engine (admin)">
           <form onSubmit={save} className="grid gap-4 sm:grid-cols-2">
             <label className="block sm:col-span-2">
-              <span className="mb-1 block text-xs font-medium text-ink/60">Your voice (the "My voice" button, and the default for new users)</span>
+              <span className="mb-1 block text-xs font-medium text-ink/60">Your voice (the "Digital Dan" button, and the default for new users)</span>
               <select className={inputCls} value={cfg.voice_id}
                 onChange={(e) => setCfg({ ...cfg, voice_id: e.target.value, voice_name: voices.find((v) => v.voice_id === e.target.value)?.name || '' })}>
                 {!voices.some((v) => v.voice_id === cfg.voice_id) && <option value={cfg.voice_id}>{cfg.voice_name || '— choose —'}</option>}
