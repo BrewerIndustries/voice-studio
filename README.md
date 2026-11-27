@@ -35,6 +35,7 @@ cd api
 npx wrangler secret put ELEVENLABS_API_KEY            # prod
 npx wrangler secret put ELEVENLABS_API_KEY --env dev  # dev
 npm run create-user -- --env prod --email you@example.com --role admin --password '...'
+npm run reset-password -- --env prod --email you@example.com  # locked out: prompts (hidden), signs out all sessions
 npm run deploy && npm run deploy:dev
 npm run migrate:prod && npm run migrate:dev           # after adding a migration
 ```
