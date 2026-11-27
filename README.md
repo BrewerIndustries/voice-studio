@@ -24,7 +24,7 @@ Same flavor as Brookeslist: **GitHub Pages SPA + Cloudflare Worker (Hono) + D1 +
 
 ### Guard rails
 - Invite-only: no sign-up route; admins create accounts.
-- Login lockout: 8 failures per IP or per email in 15 min → 429.
+- No failed-login lockout (removed 2026-11-26 at the owner's request); PBKDF2 is the only brake on guessing.
 - Per-user monthly character cap (admins exempt) + max characters per clip,
   both set in **Admin**; burst limit of 30 clips per 10 min per user.
 
