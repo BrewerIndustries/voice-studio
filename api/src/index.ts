@@ -43,10 +43,6 @@ const COOKIE = 'vs_session';
 const SESSION_DAYS = 30;
 const SESSION_MS = SESSION_DAYS * 24 * 60 * 60 * 1000;
 
-// Login lockout: this many failures per key inside the window → 429.
-const LOGIN_WINDOW_MS = 15 * 60 * 1000;
-const LOGIN_MAX_FAILURES = 8;
-
 // Generation burst limit, per user.
 const GEN_WINDOW_MS = 10 * 60 * 1000;
 const GEN_MAX_PER_WINDOW = 30;
@@ -206,22 +202,9 @@ app.post('/auth/login', async (c) => {
   const password = String(body.password ?? '');
   if (!email || !password) return c.json({ error: 'login and password required' }, 400);
 
-  const ip = c.req.header('CF-Connecting-IP') || 'unknown';
-  const keys = [`ip:${ip}`, `email:${email}`];
-  const since = Date.now() - LOGIN_WINDOW_MS;
-  await c.env.DB.prepare('DELETE FROM login_failures WHERE at < ?').bind(since).run();
-  const fails = await c.env.DB.prepare(
-    'SELECT COUNT(*) AS n FROM login_failures WHERE key IN (?, ?) AND at >= ? GROUP BY key ORDER BY n DESC LIMIT 1',
-  ).bind(keys[0], keys[1], since).first();
-  if (Number(fails?.n ?? 0) >= LOGIN_MAX_FAILURES) {
-    return c.json({ error: 'too many attempts — try again in 15 minutes' }, 429);
-  }
-
   const user = await c.env.DB.prepare('SELECT * FROM users WHERE email = ?').bind(email).first();
+  // No failed-login lockout (removed at the owner's request, 2026-11-26).
   if (!user || !(await verifyPassword(password, user.password_hash as string))) {
-    const at = Date.now();
-    await c.env.DB.batch(keys.map((k) =>
-      c.env.DB.prepare('INSERT INTO login_failures (key, at) VALUES (?, ?)').bind(k, at)));
     return c.json({ error: 'invalid credentials' }, 401);
   }
 

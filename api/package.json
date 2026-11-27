@@ -10,6 +10,7 @@
     "migrate:prod": "wrangler d1 migrations apply voice-studio-prod --remote",
     "migrate:dev": "wrangler d1 migrations apply voice-studio-dev --remote --env dev",
     "create-user": "node scripts/create-user.mjs",
+    "reset-password": "node scripts/reset-password.mjs",
     "typecheck": "tsc"
   },
   "dependencies": {
